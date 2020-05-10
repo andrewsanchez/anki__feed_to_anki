@@ -9,6 +9,21 @@
             "URL": "https://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
             "DECK": "Word of the Day::Oxford",
             "tags": ["wotd", "OAAD"]
+        },
+        {
+            "URL": "https://www.macmillandictionary.com/us/buzzword/rss.xml",
+            "DECK": "Word of the Day::MacMillan: BuzzWord",
+            "tags": []
+        },
+        {
+            "URL": "https://www.macmillandictionary.com/us/potw/potwrss.xml",
+            "DECK": "Word of the Day::MacMillan: Phrase of the Week",
+            "tags": []
+        },
+        {
+            "URL": "https://www.oed.com/rss/wordoftheday",
+            "DECK": "Word of the Day::The word of the day from Oxford English Dictionary",
+            "tags": ["OED", "Wotd"]
         }
     ],
     "model": "Feed_to_Anki",
