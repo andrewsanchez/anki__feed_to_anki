@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "title": "Feed to Anki",
+    "properties": {
+        "model": {
+            "type": "string",
+            "default": "Feed_to_Anki",
+            "description": ""
+        },
+        "target_fields": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            },
+            "description": ""
+        },
+        "feeds_info": {
+            "type": "array",
+            "description": "",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "URL": {
+                        "type": "string"
+                    },
+                    "DECK": {
+                        "type": "string"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": ["URL", "DECK", "tags"],
+                "additionalProperties": false
+            }
+        }
+    }
+}
