@@ -1,16 +1,16 @@
 {
     "feeds_info": [
         {
-            "URL": "http://www.merriam-webster.com/wotd/feed/rss2",
+            "URL": "https://www.merriam-webster.com/wotd/feed/rss2",
             "DECK": "Word of the Day::Merriam-Webster",
             "tags": ["wotd", "MW"]
         },
         {
-            "URL": "http://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
+            "URL": "https://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
             "DECK": "Word of the Day::Oxford",
-            "tags": ["wotd", "OAAD"],
-            "model": "Feed_to_Anki",
-            "target_fields": ["Front","Back"]
+            "tags": ["wotd", "OAAD"]
         }
-    ]
+    ],
+    "model": "Feed_to_Anki",
+    "target_fields": ["Front", "Back"]
 }
