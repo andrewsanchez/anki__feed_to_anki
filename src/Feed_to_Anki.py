@@ -19,16 +19,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-##### Feeds info (URL, deck, tags) #####
-feeds_info = [
-    {"URL": "https://www.merriam-webster.com/wotd/feed/rss2",
-     "DECK": "Word of the Day::Merriam-Webster",
-     "tags": ["wotd", "MW"]},
-    {"URL": "https://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
-     "DECK": "Word of the Day::Oxford",
-     "tags": ["wotd", "OAAD"]},
-]
-########################################
 
 import requests
 
