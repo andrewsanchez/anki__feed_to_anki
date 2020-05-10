@@ -26,6 +26,6 @@
             "tags": ["OED", "Wotd"]
         }
     ],
-    "model": "Feed_to_Anki",
+    "note type": "Feed_to_Anki",
     "target_fields": ["Front", "Back"]
 }

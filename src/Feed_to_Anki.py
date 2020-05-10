@@ -59,7 +59,7 @@ def getFeed(url):
 def addFeedModel(col):
     # add the model for feeds
     mm = col.models
-    m = mm.new(gc('model'))
+    m = mm.new(gc("note type"))
     target_fields = gc('target_fields')
     for f in target_fields:
         fm = mm.newField(f)
@@ -87,19 +87,19 @@ def buildCards():
 def buildCard(**kw):
     # get deck and model
     deck  = mw.col.decks.get(mw.col.decks.id(kw['DECK']))
-    model = mw.col.models.byName(gc('model'))
+    model = mw.col.models.byName(gc("note type"))
 
     # if MODEL doesn't exist, create a MODEL
     if model is None:
         model = addFeedModel(mw.col)
-        model['name'] = gc('model')
+        model['name'] = gc("note type")
     else:
         act_name = set([f['name'] for f in model['flds']])
         std_name = set(gc('target_fields'))
         if not len(act_name & std_name) == 2:
-            model['name'] = gc('model') + "-" + model['id']
+            model['name'] = gc("note type") + "-" + model['id']
             model = addFeedModel(mw.col)
-            model['name'] = gc('model')
+            model['name'] = gc("note type")
 
     # assign model to deck
     mw.col.decks.select(deck['id'])

@@ -3,7 +3,7 @@
     "type": "object",
     "title": "Feed to Anki",
     "properties": {
-        "model": {
+        "note type": {
             "type": "string",
             "default": "Feed_to_Anki",
             "description": ""
