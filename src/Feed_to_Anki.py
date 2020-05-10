@@ -22,36 +22,29 @@
 
 import requests
 
-from aqt import mw, utils
-from aqt.qt import *
+from aqt import mw
+from aqt.utils import showText
+from aqt.qt import (
+    QAction,
+)
 from anki.lang import ngettext
 from bs4 import BeautifulSoup
 
 
-MODEL = "Feed_to_Anki"
-target_fields = ["Front", "Back"]
-
-
-config = mw.addonManager.getConfig(__name__)
-if config:
-    feeds_info = config['feeds_info']
-    MODEL = config['model']
-    target_fields = config['target_fields']
-else:
-    msg = """
-Feed to Anki:
-The add-on missed the configuration file.
-If you would not get the right feeds,
-please reinstall this add-on."""
-    utils.showWarning(msg)
+def gc(arg, fail=False):
+    conf = mw.addonManager.getConfig(__name__)
+    if conf:
+        return conf.get(arg, fail)
+    else:
+        return fail
 
 
 def getFeed(url):
     data = ""
     errmsg = ""
     try:
-        r=requests.get(url)
-        data =r.text
+        r = requests.get(url)
+        data = r.text
     except requests.ConnectionError as e:
         errmsg = "Failed to reach the server." + str(e) + "\n"
     except requests.HTTPError as e:
@@ -66,7 +59,8 @@ def getFeed(url):
 def addFeedModel(col):
     # add the model for feeds
     mm = col.models
-    m = mm.new(MODEL)
+    m = mm.new(gc('model'))
+    target_fields = gc('target_fields')
     for f in target_fields:
         fm = mm.newField(f)
         mm.addField(m, fm)
@@ -82,29 +76,30 @@ def addFeedModel(col):
 def buildCards():
     msg = ""
     mw.progress.start(immediate=True)
+    feeds_info = gc('feeds_info')
     for i in range(len(feeds_info)):
         msg += feeds_info[i]["DECK"] + ":\n"
         msg += buildCard(**feeds_info[i]) + "\n"
     mw.progress.finish()
-    utils.showText(msg)
+    showText(msg)
 
 
 def buildCard(**kw):
     # get deck and model
     deck  = mw.col.decks.get(mw.col.decks.id(kw['DECK']))
-    model = mw.col.models.byName(MODEL)
+    model = mw.col.models.byName(gc('model'))
 
     # if MODEL doesn't exist, create a MODEL
     if model is None:
         model = addFeedModel(mw.col)
-        model['name'] = MODEL
+        model['name'] = gc('model')
     else:
         act_name = set([f['name'] for f in model['flds']])
-        std_name = set(target_fields)
+        std_name = set(gc('target_fields'))
         if not len(act_name & std_name) == 2:
-            model['name'] = MODEL + "-" + model['id']
+            model['name'] = gc('model') + "-" + model['id']
             model = addFeedModel(mw.col)
-            model['name'] = MODEL
+            model['name'] = gc('model')
 
     # assign model to deck
     mw.col.decks.select(deck['id'])
@@ -136,6 +131,7 @@ def buildCard(**kw):
     # iterate notes
     dups = 0
     adds = 0
+    target_fields = gc('target_fields')
     for item in items:
         note = mw.col.newNote()
         note[target_fields[0]] = item.title.text
