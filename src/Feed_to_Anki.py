@@ -27,7 +27,7 @@ from aqt.utils import showText
 from aqt.qt import (
     QAction,
 )
-from anki.lang import ngettext
+from anki.lang import ngettext, _
 from bs4 import BeautifulSoup
 
 
