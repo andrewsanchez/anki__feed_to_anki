@@ -130,23 +130,89 @@ def getFeed(url):
         return [data, errmsg]
 
 
-# iterate feeds
-def buildCards():
-    if not is_valid_config(gc()):
-        return
-    msg = ""
-    mw.progress.start(immediate=True)
-    feeds_info = gc('feeds_info')
-    for i in range(len(feeds_info)):
-        msg += feeds_info[i]["Deck"] + ":\n"
-        msg += buildCard(**feeds_info[i]) + "\n"
-    mw.progress.finish()
-    showText(msg)
+def split_up_item(item, feed):
+    title = item.title.text
+    try:
+        link = item.link.text  # TODO
+    except:
+        link = ""
+    content = ""
+    if feed == "rss":
+        if not item.description is None:
+            content = item.description.text
+    if feed == "atom":
+        if not item.content is None:
+            content = item.content.text
+        elif not item.summary is None:
+            content = item.summary.text
+    return title, link, content
 
 
-def buildCard(**kw):
-    global model
+def fill_note_fields(note, title, link, content, kw):
+    field_title = kw["Mapping: Title"]
+    field_content = kw["Mapping: Content/Description/Summary"]
+    field_url = kw.get("Mapping: Url", "")
+    for n, f in enumerate(note.model()["flds"]):
+        fieldName = f["name"]
+        if fieldName == field_title:
+            tostrip = kw.get("Strip/Delete from Title")
+            if tostrip:
+                for entry in tostrip:
+                    title = title.replace(entry, "")
+            note.fields[n] = title
+        if fieldName == field_content:
+            tostrip = kw.get("Strip/Delete from Content/Description/Summary")
+            if tostrip:
+                for entry in tostrip:
+                    content = content.replace(entry, "")
+            if field_title == field_content:
+                note.fields[n] += "<br><br>" + content
+            else:
+                note.fields[n] = content
+        if field_url and fieldName == field_url:
+            note.fields[n] = link
+    return note
+
+
+def process_one_item(item, kw, feed, tofill):
     global processed
+    note = mw.col.newNote()
+    title, link, content = split_up_item(item, feed)
+    if not title:
+        return False, False  # note, increasedups
+
+    # duplicate check: check second field because sometimes the front is the 
+    # same, e.g. for goodreads
+    isduplicate = False
+    if kw["Name"] in processed:
+        for entry in processed[kw["Name"]]:
+            if entry == [title, content]:
+                isduplicate = True
+                break
+    if isduplicate:
+        return False, True  # note, increasedups
+
+    note = fill_note_fields(note, title, link, content, kw)
+    processed.setdefault(kw["Name"], []).append([title, content])
+    note.tags = kw['Tags']
+
+    if note.dupeOrEmpty() == 2:
+        note.tags.append("possible_duplicate")
+
+    # make sure that a card for the note is generated.
+    if not tofill:  # no note of the note type exists
+        for f in note.fields:
+            if not f:
+                f = "."
+    else:
+        for i in tofill:
+            if not note.fields[i]:
+                note.fields[i] = "."
+    
+    return note, False  # note, increasedups
+
+
+def process_one_feed(**kw):
     # get deck and model
     deck  = mw.col.decks.get(mw.col.decks.id(kw['Deck']))
     model = mw.col.models.byName(kw['Note type'])
@@ -184,76 +250,11 @@ def buildCard(**kw):
 
     tofill = fields_to_fill_for_nonempty_front_template(model["id"])
     for item in items:
-        note = mw.col.newNote()
-
-        title = item.title.text
-        try:
-            link = item.link.text  # TODO
-        except:
-            link = ""
-        content = ""
-        if feed == "rss":
-            if not item.description is None:
-                content = item.description.text
-        if feed == "atom":
-            if not item.content is None:
-                content = item.content.text
-            elif not item.summary is None:
-                content = item.summary.text
-        if not title:
-            return
-
-
-        # duplicate check: check second field because sometimes the front is the 
-        # same, e.g. for goodreads
-        isduplicate = False
-        if kw["Name"] in processed:
-            for entry in processed[kw["Name"]]:
-                if entry == [title, content]:
-                    isduplicate = True
-                    break
-        if isduplicate:
+        note, increasedups = process_one_item(item, kw, feed, tofill)
+        if increasedups:
             dups += 1
+        if not note:
             continue
-
-        field_title = kw["Mapping: Title"]
-        field_content = kw["Mapping: Content/Description/Summary"]
-        field_url = kw.get("Mapping: Url", "")
-        for n, f in enumerate(note.model()["flds"]):
-            fieldName = f["name"]
-            if fieldName == field_title:
-                tostrip = kw.get("Strip/Delete from Title")
-                if tostrip:
-                    for entry in tostrip:
-                        title = title.replace(entry, "")
-                note.fields[n] = title
-            if fieldName == field_content:
-                tostrip = kw.get("Strip/Delete from Content/Description/Summary")
-                if tostrip:
-                    for entry in tostrip:
-                        content = content.replace(entry, "")
-                if field_title == field_content:
-                    note.fields[n] += "<br><br>" + content
-                else:
-                    note.fields[n] = content
-            if field_url and fieldName == field_url:
-                note.fields[n] = link
-        processed.setdefault(kw["Name"], []).append([title, content])
-        note.tags = kw['Tags']
-
-        if note.dupeOrEmpty() == 2:
-            note.tags.append("possible_duplicate")
-
-        # make sure that a card for the note is generated.
-        if not tofill:  # no note of the note type exists
-            for f in note.fields:
-                if not f:
-                    f = "."
-        else:
-            for i in tofill:
-                if not note.fields[i]:
-                    note.fields[i] = "."
-
         mw.col.addNote(note)
         if not tofill:  # now one note of the note type exists
             tofill = fields_to_fill_for_nonempty_front_template(model["id"])
@@ -272,7 +273,22 @@ def buildCard(**kw):
         msg += "\n"
     return msg
 
+
+# iterate feeds
+def process_feeds():
+    if not is_valid_config(gc()):
+        return
+    msg = ""
+    mw.progress.start(immediate=True)
+    feeds_info = gc('feeds_info')
+    for i in range(len(feeds_info)):
+        msg += feeds_info[i]["Deck"] + ":\n"
+        msg += process_one_feed(**feeds_info[i]) + "\n"
+    mw.progress.finish()
+    showText(msg)
+
+
 # create a new menu item
 action = QAction("Feed to Anki", mw)
-action.triggered.connect(buildCards)
+action.triggered.connect(process_feeds)
 mw.form.menuTools.addAction(action)
