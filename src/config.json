@@ -1,31 +1,68 @@
 {
     "feeds_info": [
         {
-            "URL": "https://www.merriam-webster.com/wotd/feed/rss2",
-            "DECK": "Word of the Day::Merriam-Webster",
-            "tags": ["wotd", "MW"]
+            "Deck": "Word of the Day::Merriam-Webster",
+            "Mapping: Content/Description/Summary": "Back",
+            "Mapping: Title": "Front",
+            "Name": "Merriam-Webster-WOTD",
+            "Note type": "Feed_to_Anki",
+            "Url": "https://www.merriam-webster.com/wotd/feed/rss2",
+            "Strip/Delete from Title": [],
+            "Strip/Delete from Content/Description/Summary": [],
+            "Tags": [
+                "wotd",
+                "MW"
+            ]
         },
         {
-            "URL": "https://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
-            "DECK": "Word of the Day::Oxford",
-            "tags": ["wotd", "OAAD"]
+            "Deck": "Word of the Day::Oxford",
+            "Mapping: Title": "Front",
+            "Mapping: Content/Description/Summary": "Back",
+            "Name": "Oxford-WOTD",
+            "Note type": "Feed_to_Anki",
+            "Url": "https://feeds.feedburner.com/OAAD-WordOfTheDay?format=xml",
+            "Strip/Delete from Title": [],
+            "Strip/Delete from Content/Description/Summary": [],
+            "Tags": [
+                "wotd",
+                "OAAD"
+            ]
         },
         {
-            "URL": "https://www.macmillandictionary.com/us/buzzword/rss.xml",
-            "DECK": "Word of the Day::MacMillan: BuzzWord",
-            "tags": []
+            "Deck": "Word of the Day::MacMillan: BuzzWord",
+            "Mapping: Title": "Front",
+            "Mapping: Content/Description/Summary": "Back",
+            "Name": "MacMillan-BuzzWord",
+            "Note type": "Feed_to_Anki",
+            "Url": "https://www.macmillandictionary.com/us/buzzword/rss.xml",
+            "Strip/Delete from Title": [],
+            "Strip/Delete from Content/Description/Summary": [],
+            "Tags": []
         },
         {
-            "URL": "https://www.macmillandictionary.com/us/potw/potwrss.xml",
-            "DECK": "Word of the Day::MacMillan: Phrase of the Week",
-            "tags": []
+            "Deck": "Word of the Day::MacMillan: Phrase of the Week",
+            "Mapping: Title": "Front",
+            "Mapping: Content/Description/Summary": "Back",
+            "Name": "MacMillan-Phrase of the Week",
+            "Note type": "Feed_to_Anki",
+            "Url": "https://www.macmillandictionary.com/us/potw/potwrss.xml",
+            "Strip/Delete from Title": [],
+            "Strip/Delete from Content/Description/Summary": [],
+            "Tags": []
         },
         {
-            "URL": "https://www.oed.com/rss/wordoftheday",
-            "DECK": "Word of the Day::The word of the day from Oxford English Dictionary",
-            "tags": ["OED", "Wotd"]
+            "Deck": "Word of the Day::The word of the day from Oxford English Dictionary",
+            "Mapping: Title": "Front",
+            "Mapping: Content/Description/Summary": "Back",
+            "Name": "oed-wotd",
+            "Note type": "Feed_to_Anki",
+            "Url": "https://www.oed.com/rss/wordoftheday",
+            "Strip/Delete from Title": [],
+            "Strip/Delete from Content/Description/Summary": [],
+            "Tags": [
+                "OED",
+                "Wotd"
+            ]
         }
-    ],
-    "note type": "Feed_to_Anki",
-    "target_fields": ["Front", "Back"]
+    ]
 }

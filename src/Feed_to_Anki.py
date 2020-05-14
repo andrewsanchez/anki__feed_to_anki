@@ -19,24 +19,98 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+"""
+TODO: use https://pythonhosted.org/feedparser/ (e.g. used in incremental reading add-on)
+      5.2 from 2015 in 2020-05 is latest stable (also in IR addon)
+      there's also a prelease for 6 on https://github.com/kurtmckee/feedparser
+TODO: better duplicate detection: also check existing notes
+TODO: add url to field (doesn't seem to work with bs4)  
+TODO: "Strip/Delete" with regex          
+"""
 
+import pprint
 import requests
 
 from aqt import mw
-from aqt.utils import showText
+from aqt.utils import showText, showInfo
 from aqt.qt import (
     QAction,
 )
+from anki.hooks import addHook
 from anki.lang import ngettext, _
 from bs4 import BeautifulSoup
 
+from .config import gc, already_downloaded_pickle
+from .helpers import fields_to_fill_for_nonempty_front_template
+from .picklehandler import (
+    pickleload,
+    picklesave
+)
 
-def gc(arg, fail=False):
-    conf = mw.addonManager.getConfig(__name__)
-    if conf:
-        return conf.get(arg, fail)
+
+def loaddict():
+    global processed
+    processed = pickleload(already_downloaded_pickle)
+addHook("profileLoaded", loaddict)
+
+
+def savedict():
+    picklesave(processed, already_downloaded_pickle)
+addHook('unloadProfile', savedict)
+
+
+addonname = "Feed to Anki"
+
+
+def is_valid_config(config):
+    missing_decks = []
+    missing_noteptyes = []
+    missing_fields = {}
+    for entry in config["feeds_info"]:
+        if entry["Deck"] not in mw.col.decks.allNames():
+            missing_decks.append(entry["Deck"])
+        if entry["Note type"] not in mw.col.models.allNames():
+            missing_noteptyes.append(entry["Note type"])
+        else:
+            # note type exists, check field names
+            model = mw.col.models.byName(entry["Note type"])
+            needsmatching = []
+            title = entry["Mapping: Title"]
+            if title:
+                needsmatching.append(title)
+            back = entry["Mapping: Content/Description/Summary"]
+            if back:
+                needsmatching.append(back)
+            url = entry.get("Mapping: Url")
+            if url:
+                needsmatching.append(url)
+            for field in model["flds"]:
+                if field["name"] in needsmatching:
+                    needsmatching.remove(field["name"])
+            if needsmatching:
+                missing_fields[entry["Note type"]] = needsmatching
+    errmsg = f"Invalid names in add-on '{addonname}' detected!\n\n"
+    if missing_decks:
+        errmsg += ('There are no decks with the following names in your collection: Fix the '
+                "add-on config or it won't work:\n    %s\n\n" % 
+                "\n    ".join(missing_decks))
+    if missing_noteptyes:
+        errmsg += ('There are no note types with the following names in your collection: Fix the '
+                "add-on config or it won't work:\n    %s\n\n" % 
+                "\n    ".join(missing_noteptyes))
+    if missing_fields:
+        errmsg += ("Some of the note types you set under 'Note type' don't have the fields you set "
+                'in the config keys "Mapping: Title" or "Mapping: Content/Description/Summary". '
+                "Fix the following values or the add-on won't work\n"
+                '(note type name: ["non-existant field names you set", ])\n\n'
+                "%s\n\n" 
+                % pprint.pformat(missing_fields))
+    if any([missing_decks, missing_noteptyes, missing_fields]):
+        showInfo(errmsg)
+        return False
     else:
-        return fail
+        return True
+mw.addonManager.setConfigUpdatedAction(__name__, is_valid_config)
 
 
 def getFeed(url):
@@ -56,50 +130,26 @@ def getFeed(url):
         return [data, errmsg]
 
 
-def addFeedModel(col):
-    # add the model for feeds
-    mm = col.models
-    m = mm.new(gc("note type"))
-    target_fields = gc('target_fields')
-    for f in target_fields:
-        fm = mm.newField(f)
-        mm.addField(m, fm)
-    t = mm.newTemplate("Card 1")
-    t['qfmt'] = "{{"+target_fields[0]+"}}"
-    t['afmt'] = "{{FrontSide}}\n\n<hr id=answer>\n\n"+"{{"+target_fields[1]+"}}"
-    mm.addTemplate(m, t)
-    mm.add(m)
-    return m
-
-
-# iterate decks
+# iterate feeds
 def buildCards():
+    if not is_valid_config(gc()):
+        return
     msg = ""
     mw.progress.start(immediate=True)
     feeds_info = gc('feeds_info')
     for i in range(len(feeds_info)):
-        msg += feeds_info[i]["DECK"] + ":\n"
+        msg += feeds_info[i]["Deck"] + ":\n"
         msg += buildCard(**feeds_info[i]) + "\n"
     mw.progress.finish()
     showText(msg)
 
 
 def buildCard(**kw):
+    global model
+    global processed
     # get deck and model
-    deck  = mw.col.decks.get(mw.col.decks.id(kw['DECK']))
-    model = mw.col.models.byName(gc("note type"))
-
-    # if MODEL doesn't exist, create a MODEL
-    if model is None:
-        model = addFeedModel(mw.col)
-        model['name'] = gc("note type")
-    else:
-        act_name = set([f['name'] for f in model['flds']])
-        std_name = set(gc('target_fields'))
-        if not len(act_name & std_name) == 2:
-            model['name'] = gc("note type") + "-" + model['id']
-            model = addFeedModel(mw.col)
-            model['name'] = gc("note type")
+    deck  = mw.col.decks.get(mw.col.decks.id(kw['Deck']))
+    model = mw.col.models.byName(kw['Note type'])
 
     # assign model to deck
     mw.col.decks.select(deck['id'])
@@ -112,7 +162,7 @@ def buildCard(**kw):
     mw.col.models.save(model)
 
     # retrieve rss
-    data, errmsg = getFeed(kw['URL'])
+    data, errmsg = getFeed(kw['Url'])
     if errmsg:
         return errmsg
 
@@ -131,25 +181,82 @@ def buildCard(**kw):
     # iterate notes
     dups = 0
     adds = 0
-    target_fields = gc('target_fields')
+
+    tofill = fields_to_fill_for_nonempty_front_template(model["id"])
     for item in items:
         note = mw.col.newNote()
-        note[target_fields[0]] = item.title.text
-        nounique = note.dupeOrEmpty()
-        if nounique:
-            if nounique == 2:
-                dups += 1
-            continue
+
+        title = item.title.text
+        try:
+            link = item.link.text  # TODO
+        except:
+            link = ""
+        content = ""
         if feed == "rss":
             if not item.description is None:
-                note[target_fields[1]] = item.description.text
+                content = item.description.text
         if feed == "atom":
             if not item.content is None:
-                note[target_fields[1]] = item.content.text
+                content = item.content.text
             elif not item.summary is None:
-                note[target_fields[1]] = item.summary.text
-        note.tags = filter(None, kw['tags'])
+                content = item.summary.text
+        if not title:
+            return
+
+
+        # duplicate check: check second field because sometimes the front is the 
+        # same, e.g. for goodreads
+        isduplicate = False
+        if kw["Name"] in processed:
+            for entry in processed[kw["Name"]]:
+                if entry == [title, content]:
+                    isduplicate = True
+                    break
+        if isduplicate:
+            dups += 1
+            continue
+
+        field_title = kw["Mapping: Title"]
+        field_content = kw["Mapping: Content/Description/Summary"]
+        field_url = kw.get("Mapping: Url", "")
+        for n, f in enumerate(note.model()["flds"]):
+            fieldName = f["name"]
+            if fieldName == field_title:
+                tostrip = kw.get("Strip/Delete from Title")
+                if tostrip:
+                    for entry in tostrip:
+                        title = title.replace(entry, "")
+                note.fields[n] = title
+            if fieldName == field_content:
+                tostrip = kw.get("Strip/Delete from Content/Description/Summary")
+                if tostrip:
+                    for entry in tostrip:
+                        content = content.replace(entry, "")
+                if field_title == field_content:
+                    note.fields[n] += "<br><br>" + content
+                else:
+                    note.fields[n] = content
+            if field_url and fieldName == field_url:
+                note.fields[n] = link
+        processed.setdefault(kw["Name"], []).append([title, content])
+        note.tags = kw['Tags']
+
+        if note.dupeOrEmpty() == 2:
+            note.tags.append("possible_duplicate")
+
+        # make sure that a card for the note is generated.
+        if not tofill:  # no note of the note type exists
+            for f in note.fields:
+                if not f:
+                    f = "."
+        else:
+            for i in tofill:
+                if not note.fields[i]:
+                    note.fields[i] = "."
+
         mw.col.addNote(note)
+        if not tofill:  # now one note of the note type exists
+            tofill = fields_to_fill_for_nonempty_front_template(model["id"])
         adds += 1
 
     mw.col.reset()

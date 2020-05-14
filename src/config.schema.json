@@ -21,20 +21,56 @@
             "items": {
                 "type": "object",
                 "properties": {
-                    "URL": {
+                    "Name": {
                         "type": "string"
                     },
-                    "DECK": {
+                    "Url": {
                         "type": "string"
                     },
-                    "tags": {
+                    "Deck": {
+                        "type": "string"
+                    },
+                    "Mapping: Title": {
+                        "type": "string"
+                    },
+                    "Mapping: Content/Description/Summary": {
+                        "type": "string"
+                    },
+                    "Mapping: Url": {
+                        "type": "string"
+                    },
+                    "Note type": {
+                        "type": "string"
+                    },
+                    "Strip/Delete from Title": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "Strip/Delete from Content/Description/Summary": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "Tags": {
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
                     }
                 },
-                "required": ["URL", "DECK", "tags"],
+                "required": [
+                    "Deck",
+                    "Mapping: Content/Description/Summary",
+                    "Mapping: Title",
+                    "Name",
+                    "Note type",
+                    "Strip/Delete from Title",
+                    "Strip/Delete from Content/Description/Summary",
+                    "Tags"
+                ],
                 "additionalProperties": false
             }
         }
